@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yedam.app.emp.mapper.EmpMapper"> <!-- 패키지 경로 + class 이름 -->
+	<!-- emp-map.xml  -->
+	
+	<!-- 전체조회 -->
+	<select id="selectEmpAll" resultType="EmpVO"> <!--id : 연결될 method 명  -->
+		SELECT employee_id
+		        , last_name
+		        , first_name
+		        , email
+		        , phone_number
+		        , hire_date
+		        , job_id
+		        , salary
+		        , commission_pct
+		        , manager_id
+		        , department_id
+		FROM employees
+		<!-- 검색조건 땜시 dynamic sql 사용 -->
+		<where> <!-- 밑에 조건들을 만족해야지만 where 절이 생성됨 -->
+			<if test="departmentId > 0">
+				OR department_id =#{departmentId}
+			</if>
+			<if test="jobId != null and !jobId.equals('')"> <!-- null 여부, 공백여부 체크 -->
+				OR job_id = #{jobId}
+			</if>
+		</where>
+		<!-- WHERE ${keyword} = #{data} -->
+		ORDER BY employee_id
+	</select>
+	
+	<!-- 단건초회 -->
+	<select id="selectEmpInfo" resultType="EmpVO">
+		SELECT employee_id
+		        , last_name
+		        , first_name
+		        , email
+		        , phone_number
+		        , hire_date
+		        , job_id
+		        , salary
+		        , commission_pct
+		        , manager_id
+		        , department_id
+		FROM employees
+		WHERE employee_id = #{employeeId}
+		<!-- #{} : PreparedStatement => 데이터 타입에 따른 작업 : 값 / mybatis xml만 #을 주로 씀.. 다른 애들은 $를 많이 씀.
+				select * from boards where title Like '%' || #{keyword} || '%'
+			 ${} : Statement		 => 데이터 타입 상관하지 않음 : table, column 
+			 	select * from boards where title Like %${keyword}%-->
+	</select>
+	
+	<!-- 등록 : sequence 사용 -->
+<!-- 	<insert id="insertEmpInfo" parameterType="EmpVO"> 넘어오는 값이 중요해서 parameterType 씀
+		<selectKey keyProperty="employeeId"
+					resultType="Integer" 
+					order="AFTER"> insert 실행하기 전에 할거냐? 후에 할거냐? 
+				SELECT employees_seq.CURRVAL  결과가 딱 하나만 나오게 해야됨
+				FROM dual
+		</selectKey>
+		INSERT INTO employees
+				(
+					employee_id
+					, last_name
+					, email
+					, job_id
+					, hire_date
+					<if test="salary > 0">
+					, salary
+					</if>
+				)
+			VALUES
+				(
+					employees_seq.NEXTVAL
+					, #{lastName}
+					, #{email}
+					, #{jobId}
+					<choose>
+						<when test="hireDate != null">
+							, #{hireDate}					
+						</when>
+						<otherwise>
+							, sysdate
+						</otherwise>
+					</choose>
+					<if test="salary > 0">
+					, #{salary}
+					</if>
+				)
+	</insert> -->
+	
+	<!-- 등록 : selectKey 사용 -->
+	<insert id="insertEmpInfo" parameterType="EmpVO"> <!-- 넘어오는 값이 중요해서 parameterType 씀 -->
+		<selectKey keyProperty="employeeId"
+					resultType="Integer" 
+					order="BEFORE"> <!--insert 실행하기 전에 할거냐? 후에 할거냐?  -->
+				SELECT NVL(MAX(employee_id), 0) +1
+				FROM employees
+		</selectKey>
+		INSERT INTO employees
+				(
+					employee_id
+					, last_name
+					, email
+					, job_id
+					, hire_date
+					<if test="salary > 0">
+					, salary
+					</if>
+				)
+			VALUES
+				(
+					#{employeeId}
+					, #{lastName}
+					, #{email}
+					, #{jobId}
+					<choose>
+						<when test="hireDate != null">
+							, #{hireDate}					
+						</when>
+						<otherwise>
+							, sysdate
+						</otherwise>
+					</choose>
+					<if test="salary > 0">
+					, #{salary}
+					</if>
+				)
+	</insert>
+	
+	<!-- 수정 -->
+	<update id="updateEmpInfo">
+		UPDATE employees
+		SET last_name = #{info.lastName}
+			, job_id = #{info.jobId}
+			<if test= "info.salary > 0">
+			, salary = #{info.salary}
+			</if>
+		WHERE employee_id = #{eId}
+	</update>
+	
+	<!-- 삭제 -->	
+	<delete id="deleteEmpInfo" parameterType="int">
+		DELETE FROM employees
+		WHERE employee_id = #{eid}
+	</delete>
+	
+</mapper>
